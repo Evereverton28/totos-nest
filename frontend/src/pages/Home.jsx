@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import api from '../api/client'
 import ProductCard from '../components/ProductCard'
 import { GridSkeleton } from '../components/Skeleton'
-import { useToast } from '../context/ToastContext'
 import { SOCIALS } from '../social'
 
 const FEATURES = [
@@ -25,7 +24,6 @@ export default function Home() {
   const [newArrivals, setNewArrivals] = useState(null)
   const [bestSellers, setBestSellers] = useState(null)
   const [categories, setCategories] = useState([])
-  const { push } = useToast()
 
   useEffect(() => {
     api.get('/products/featured').then((r) => setFeatured(r.data)).catch(() => setFeatured([]))
@@ -33,12 +31,6 @@ export default function Home() {
     api.get('/products/best-sellers').then((r) => setBestSellers(r.data)).catch(() => setBestSellers([]))
     api.get('/categories').then((r) => setCategories(r.data)).catch(() => {})
   }, [])
-
-  const subscribe = (e) => {
-    e.preventDefault()
-    e.target.reset()
-    push('Thanks for subscribing! Check your inbox soon 💌')
-  }
 
   return (
     <>
@@ -167,20 +159,6 @@ export default function Home() {
                 <div className="who">{t.who} <span className="muted" style={{ fontWeight: 400 }}>· {t.role}</span></div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Newsletter ---- */}
-      <section className="section">
-        <div className="container">
-          <div className="newsletter">
-            <h2>Join the nest</h2>
-            <p>Be first to know about new arrivals, restocks and gentle little offers.</p>
-            <form onSubmit={subscribe}>
-              <input type="email" required placeholder="Your email address" aria-label="Email" />
-              <button className="btn btn-clay" type="submit">Subscribe</button>
-            </form>
           </div>
         </div>
       </section>

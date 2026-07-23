@@ -5,7 +5,7 @@ const FAQS = [
   ['What are your delivery fees?', 'A flat KES 350 within Kenya, and free on all orders over KES 5,000.'],
   ['Can I return an item?', 'Yes — we offer 7-day returns on unworn items with tags. Reach out via Contact and we\'ll guide you.'],
   ['How do I pay?', 'We accept M-Pesa, card, and pay-on-delivery. Your payment details are never stored by us.'],
-  ['Do you restock sold-out items?', 'Often! Join our newsletter or follow us on Instagram to hear about restocks first.'],
+  ['Do you restock sold-out items?', 'Often! Follow us on Instagram to hear about restocks first.'],
   ['Are the fabrics safe for newborns?', 'Absolutely. We prioritise soft, breathable, skin-friendly fabrics suitable for delicate newborn skin.'],
 ]
 

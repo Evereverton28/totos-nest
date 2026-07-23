@@ -91,7 +91,7 @@ stay on the storefront; admins land in the admin panel at **/admin**.
 ## What's included
 
 **Storefront** — home (hero, featured categories, new arrivals, best sellers,
-testimonials, newsletter, Instagram strip), shop with filters (category, gender,
+testimonials, Instagram strip), shop with filters (category, gender,
 age, size, price, availability) + sorting + live search suggestions, product
 detail (gallery, sizes, quantity, reviews, related), cart, guest/authed
 checkout, order confirmation, about, contact, FAQ, auth, and a user account area

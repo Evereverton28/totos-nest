@@ -133,14 +133,6 @@
 .testi .who { font-family: var(--font-display); font-weight: 700; color: var(--sage-deep); }
 @media (max-width: 720px) { .testi-grid { grid-template-columns: 1fr; } }
 
-/* ---- Newsletter ---- */
-.newsletter { background: var(--accent-strong); border-radius: var(--r-xl); padding: 48px; text-align: center; color: #fff; }
-.newsletter h2 { color: #fff; font-size: 1.8rem; }
-.newsletter p { color: rgba(255,255,255,.85); margin: 10px auto 22px; max-width: 460px; }
-.newsletter form { display: flex; gap: 10px; max-width: 440px; margin: 0 auto; }
-.newsletter input { flex: 1; padding: 13px 18px; border-radius: 999px; border: none; background: #fff; color: #3A362A; }
-@media (max-width: 520px) { .newsletter form { flex-direction: column; } }
-
 /* ---- Instagram preview ---- */
 .ig-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .ig-grid img { aspect-ratio: 1; object-fit: cover; border-radius: var(--r-sm); }
