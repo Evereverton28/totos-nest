@@ -85,6 +85,9 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(data.get("password") or ""):
         return jsonify({"error": "Invalid email or password"}), 401
+    if not user.is_active:
+        return jsonify({"error": "This account has been deactivated. "
+                                 "Please contact the store owner."}), 403
 
     return jsonify({"token": _issue_token(user), "user": user.to_dict()})
 

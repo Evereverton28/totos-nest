@@ -14,9 +14,32 @@ export const PERMISSIONS = {
   manager: [
     'dashboard', 'products:read', 'products:write', 'categories', 'orders',
     'customers', 'reviews', 'messages', 'coupons', 'banners', 'analytics',
+    'user_management',
   ],
   staff: ['orders', 'products:read', 'reviews', 'messages'],
   customer: [],
+}
+
+// Account-creation hierarchy — mirrors MANAGEABLE_ROLES in app/roles.py.
+// Customers are absent by design: they self-register and are never created by
+// an admin. Super admins are absent too, so the top role can't be assigned.
+export const MANAGEABLE_ROLES = {
+  super_admin: ['manager', 'staff'],
+  manager: ['staff'],
+  staff: [],
+  customer: [],
+}
+
+export const manageableRoles = (role) => MANAGEABLE_ROLES[role] || []
+
+export const canManageRole = (actorRole, targetRole) =>
+  manageableRoles(actorRole).includes(targetRole)
+
+export const ROLE_LABELS = {
+  super_admin: 'Super admin',
+  manager: 'Manager',
+  staff: 'Staff',
+  customer: 'Customer',
 }
 
 export const isAdminRole = (role) => ADMIN_ROLES.includes(role)

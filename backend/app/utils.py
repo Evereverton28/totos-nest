@@ -9,9 +9,19 @@ from .roles import ADMIN_ROLES, has_permission
 
 
 def _current_user():
-    """Resolve the authenticated user from the JWT, or None."""
+    """Resolve the authenticated user from the JWT, or None.
+
+    Deactivated accounts resolve to None, so an already-issued token stops
+    working the moment the account is switched off.
+    """
     verify_jwt_in_request()
-    return User.query.get(get_jwt_identity())
+    user = User.query.get(get_jwt_identity())
+    return user if (user and user.is_active) else None
+
+
+def current_user():
+    """The authenticated (and active) user, for use inside a guarded route."""
+    return _current_user()
 
 
 def admin_required(fn):

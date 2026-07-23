@@ -16,6 +16,15 @@ def create_app(config_class=Config):
     # --- Init extensions ---
     db.init_app(app)
     jwt.init_app(app)
+
+    # A deactivated account's token stops working everywhere, immediately —
+    # not just on the admin routes. This runs for every @jwt_required() route,
+    # so revoking access doesn't wait for the token to expire.
+    @jwt.token_in_blocklist_loader
+    def _account_deactivated(_jwt_header, jwt_payload):
+        from .models import User
+        user = User.query.get(jwt_payload.get("sub"))
+        return (user is None) or (not user.is_active)
     cors.init_app(app, resources={r"/api/*": {"origins": config_class.CORS_ORIGINS}},
                   supports_credentials=True)
 

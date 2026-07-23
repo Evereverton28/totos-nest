@@ -12,6 +12,7 @@ const NAV = [
   { to: '/admin/orders', label: 'Orders', icon: '📦', perm: 'orders' },
   { to: '/admin/customers', label: 'Customers', icon: '👥', perm: 'customers' },
   { to: '/admin/analytics', label: 'Analytics', icon: '📈', perm: 'analytics' },
+  { to: '/admin/team', label: 'Team', icon: '🧑‍🍼', perm: 'user_management' },
 ]
 
 const ROLE_LABEL = { super_admin: 'Super admin', manager: 'Manager', staff: 'Staff' }

@@ -24,6 +24,8 @@ class User(db.Model):
     phone = db.Column(db.String(40))
     # role drives authorization: customer | super_admin | manager | staff
     role = db.Column(db.String(20), default="customer", nullable=False, index=True)
+    # Deactivated accounts keep their data & order history but cannot log in.
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     orders = db.relationship("Order", backref="user", lazy=True)
@@ -58,6 +60,7 @@ class User(db.Model):
             "phone": self.phone,
             "role": self.role,
             "is_admin": self.is_admin,
+            "is_active": self.is_active,
             "permissions": permissions_for(self.role),
             "created_at": self.created_at.isoformat(),
         }

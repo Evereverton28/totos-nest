@@ -33,6 +33,7 @@ const AdminProducts  = lazy(() => import('./pages/admin/AdminProducts'))
 const AdminOrders    = lazy(() => import('./pages/admin/AdminOrders'))
 const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'))
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'))
+const AdminTeam      = lazy(() => import('./pages/admin/AdminTeam'))
 
 export default function App() {
   usePageTracking()
@@ -86,6 +87,9 @@ export default function App() {
             } />
             <Route path="analytics" element={
               <ProtectedRoute perm="analytics"><AdminAnalytics /></ProtectedRoute>
+            } />
+            <Route path="team" element={
+              <ProtectedRoute perm="user_management"><AdminTeam /></ProtectedRoute>
             } />
           </Route>
 

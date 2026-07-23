@@ -147,8 +147,35 @@ the client in **`frontend/src/permissions.js`**:
 | Role        | Access |
 |-------------|--------|
 | super_admin | everything |
-| manager     | everything except user-management & settings |
-| staff       | orders, products (read), reviews, messages |
+| manager     | everything except settings; team management limited to staff |
+| staff       | orders, products (read), reviews, messages — no account management |
+
+### Account creation & hierarchy
+
+Who may create, edit, deactivate and delete whom (`MANAGEABLE_ROLES` in
+`roles.py`, mirrored in `permissions.js`), managed from **Admin → Team**:
+
+| Actor       | Can manage        |
+|-------------|-------------------|
+| super_admin | managers + staff  |
+| manager     | staff only        |
+| staff       | nobody            |
+| customer    | nobody            |
+
+Two roles are deliberately *not* manageable through the panel:
+
+- **Customers** self-register on the public Sign Up page and are never created
+  or role-changed by an admin.
+- **Super admins** can't be created or edited here either — they come only from
+  the seed or the invite-code endpoint — so no account can escalate to, or
+  tamper with, the top role.
+
+Admins also can't act on their own account through this screen, which prevents
+self-lockout and self-deletion.
+
+**Deactivating** an account keeps its data and history but blocks sign-in — and
+because the check runs on every authenticated request, any token the user
+already holds stops working immediately rather than lingering until it expires.
 
 To add a role or change what one can do, edit the map in `roles.py` (and mirror
 it in `permissions.js`) — the route guards and the sidebar both follow from it.
@@ -176,4 +203,3 @@ secrets before deploying.
   photography (or a real upload flow) for production.
 - SQLite is perfect for development and small stores. For higher traffic, point
   `DATABASE_URL` at PostgreSQL — SQLAlchemy handles the rest.
-# totos-nest

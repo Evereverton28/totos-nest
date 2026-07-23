@@ -37,8 +37,12 @@ SETTINGS = "settings"              # change store settings
 
 
 # --- Role -> permissions ---------------------------------------------------
-# super_admin: everything. manager: everything except user-management &
-# settings. staff: orders, products (read only), reviews, messages.
+# super_admin: everything.
+# manager: everything except settings. They hold USER_MANAGEMENT, but the
+#   hierarchy below narrows it to staff accounts only — the permission opens
+#   the door, MANAGEABLE_ROLES decides how far in they get.
+# staff: orders, products (read only), reviews, messages — and no account
+#   management of any kind.
 _ALL = {
     DASHBOARD, PRODUCTS_READ, PRODUCTS_WRITE, CATEGORIES, ORDERS, CUSTOMERS,
     REVIEWS, MESSAGES, COUPONS, BANNERS, ANALYTICS, USER_MANAGEMENT, SETTINGS,
@@ -46,10 +50,39 @@ _ALL = {
 
 PERMISSIONS = {
     SUPER_ADMIN: set(_ALL),
-    MANAGER: _ALL - {USER_MANAGEMENT, SETTINGS},
+    MANAGER: _ALL - {SETTINGS},
     STAFF: {ORDERS, PRODUCTS_READ, REVIEWS, MESSAGES},
     CUSTOMER: set(),
 }
+
+
+# --- Account-creation hierarchy --------------------------------------------
+# Which roles each actor may create / edit / deactivate / delete.
+#   super_admin -> managers and staff
+#   manager     -> staff only
+#   staff       -> nobody
+# Deliberately absent:
+#   * No one can manage a super_admin through the panel (they're minted only by
+#     the seed or the invite-code endpoint), so an account can never be used to
+#     escalate to, or tamper with, the top role.
+#   * `customer` is never here — shoppers self-register and are never created
+#     or role-changed by an admin.
+MANAGEABLE_ROLES = {
+    SUPER_ADMIN: {MANAGER, STAFF},
+    MANAGER: {STAFF},
+    STAFF: set(),
+    CUSTOMER: set(),
+}
+
+
+def manageable_roles(actor_role):
+    """The set of roles `actor_role` is allowed to create and administer."""
+    return MANAGEABLE_ROLES.get(actor_role, set())
+
+
+def can_manage_role(actor_role, target_role):
+    """True if an actor may act on an account holding `target_role`."""
+    return target_role in manageable_roles(actor_role)
 
 
 def has_permission(role, permission):

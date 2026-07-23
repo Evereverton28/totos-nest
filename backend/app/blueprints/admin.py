@@ -13,8 +13,8 @@ from sqlalchemy import func
 from ..extensions import db
 from ..models import (Product, ProductImage, Category, Order, User, Review,
                       Coupon, Banner)
-from ..utils import permission_required, paginate
-from ..roles import (CUSTOMER, ASSIGNABLE_ADMIN_ROLES, DASHBOARD, PRODUCTS_READ,
+from ..utils import permission_required, paginate, current_user
+from ..roles import (CUSTOMER, can_manage_role, manageable_roles, DASHBOARD, PRODUCTS_READ,
                      PRODUCTS_WRITE, CATEGORIES, ORDERS, CUSTOMERS, REVIEWS,
                      COUPONS, BANNERS, USER_MANAGEMENT)
 
@@ -267,24 +267,128 @@ def create_banner():
 
 
 # ---------------------------------------------------------------------------
-# Admin user management (super_admin only, via USER_MANAGEMENT permission)
+# Team account management (create / edit / deactivate / delete)
+#
+# Guarded twice over:
+#   1. @permission_required(USER_MANAGEMENT) — staff & customers never get in.
+#   2. can_manage_role(actor, target)        — narrows what each admin reaches:
+#        super_admin -> managers + staff      manager -> staff only
+# Customers are never touched here; they self-register on the public Sign Up
+# page. Super admins can't be created or edited through the panel either, so
+# the top role can't be escalated to or tampered with.
 # ---------------------------------------------------------------------------
-@admin_bp.get("/admin/staff")
-@permission_required(USER_MANAGEMENT)
-def list_staff():
-    """List admin accounts (everyone who isn't a customer)."""
-    admins = User.query.filter(User.role != CUSTOMER).order_by(User.name).all()
-    return jsonify([u.to_dict() for u in admins])
+def _target_or_403(uid):
+    """Fetch a target account and confirm the caller outranks it.
+
+    Returns (user, None) on success or (None, response) to bail out with.
+    """
+    actor = current_user()
+    target = User.query.get(uid)
+    if not target or target.role == CUSTOMER:
+        return None, (jsonify({"error": "Account not found"}), 404)
+    if target.id == actor.id:
+        return None, (jsonify({"error": "You can't manage your own account here"}), 403)
+    if not can_manage_role(actor.role, target.role):
+        return None, (jsonify({"error": "You can't manage this account"}), 403)
+    return target, None
 
 
-@admin_bp.put("/admin/staff/<int:uid>/role")
+@admin_bp.get("/admin/team")
 @permission_required(USER_MANAGEMENT)
-def change_role(uid):
-    """Promote/demote an account between admin roles."""
-    user = User.query.get_or_404(uid)
-    new_role = (request.get_json() or {}).get("role")
-    if new_role not in ASSIGNABLE_ADMIN_ROLES:
-        return jsonify({"error": "Invalid admin role"}), 400
-    user.role = new_role
+def list_team():
+    """List the accounts this admin may manage, plus the roles they can create."""
+    actor = current_user()
+    allowed = manageable_roles(actor.role)
+    members = (User.query.filter(User.role.in_(allowed))
+               .order_by(User.name).all()) if allowed else []
+    return jsonify({
+        "members": [u.to_dict() for u in members],
+        "creatable_roles": sorted(allowed),
+    })
+
+
+@admin_bp.post("/admin/team")
+@permission_required(USER_MANAGEMENT)
+def create_team_member():
+    """Create a Manager or Staff account, within the caller's hierarchy."""
+    actor = current_user()
+    data = request.get_json() or {}
+    role = (data.get("role") or "").strip()
+
+    if not can_manage_role(actor.role, role):
+        return jsonify({"error": f"You can't create {role or 'that'} accounts"}), 403
+
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    if not name or not email or len(password) < 6:
+        return jsonify({"error": "Name, email and a 6+ char password are required"}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "An account with this email already exists"}), 409
+
+    user = User(name=name, email=email, phone=data.get("phone"), role=role)
+    user.set_password(password)
+    db.session.add(user)
     db.session.commit()
-    return jsonify(user.to_dict())
+    return jsonify(user.to_dict()), 201
+
+
+@admin_bp.put("/admin/team/<int:uid>")
+@permission_required(USER_MANAGEMENT)
+def update_team_member(uid):
+    """Edit a managed account: details, password, or role."""
+    target, err = _target_or_403(uid)
+    if err:
+        return err
+    actor = current_user()
+    data = request.get_json() or {}
+
+    if "role" in data and data["role"] != target.role:
+        new_role = data["role"]
+        # Must be allowed to hand out the new role as well as touch the old one.
+        if not can_manage_role(actor.role, new_role):
+            return jsonify({"error": f"You can't assign the {new_role} role"}), 403
+        target.role = new_role
+
+    if "email" in data and data["email"]:
+        email = data["email"].strip().lower()
+        clash = User.query.filter(User.email == email, User.id != target.id).first()
+        if clash:
+            return jsonify({"error": "An account with this email already exists"}), 409
+        target.email = email
+
+    target.name = (data.get("name") or target.name).strip()
+    target.phone = data.get("phone", target.phone)
+
+    if data.get("password"):
+        if len(data["password"]) < 6:
+            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        target.set_password(data["password"])
+
+    db.session.commit()
+    return jsonify(target.to_dict())
+
+
+@admin_bp.put("/admin/team/<int:uid>/active")
+@permission_required(USER_MANAGEMENT)
+def set_team_member_active(uid):
+    """Deactivate (or restore) an account. Deactivated users can't log in and
+    any token they already hold stops working immediately."""
+    target, err = _target_or_403(uid)
+    if err:
+        return err
+    target.is_active = bool((request.get_json() or {}).get("is_active", False))
+    db.session.commit()
+    return jsonify(target.to_dict())
+
+
+@admin_bp.delete("/admin/team/<int:uid>")
+@permission_required(USER_MANAGEMENT)
+def delete_team_member(uid):
+    """Permanently delete a managed account."""
+    target, err = _target_or_403(uid)
+    if err:
+        return err
+    db.session.delete(target)
+    db.session.commit()
+    return jsonify({"deleted": uid})
